@@ -1,0 +1,6 @@
+{
+  "name": "Jakuv Card Game",
+  "description": "A strategic card game where players aim to score exactly 21 points. Play against an AI opponent, make tactical plays, and win the game.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jakuv Card Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        /* CosmoTech v2 Palette */
+        --bg-void: #010108;
+        --bg-indigo: #100828;
+        --bg-violet-nebula: #2c1a4c;
+        
+        --text-primary: #f0e8ff;
+        --text-secondary: #bca8e0;
+        
+        --accent-cyan: #00f2ff;
+        --accent-magenta: #ff2ea4;
+        --accent-lavender: #9c88ff;
+        --accent-warning: #ffee80; /* Brighter yellow */
+        --accent-red: #ff5555; /* Slightly brighter red */
+
+        /* Semantic mapping */
+        --bg-start: var(--bg-void);
+        --bg-end: var(--bg-indigo);
+        --text-light: var(--text-primary);
+        --text-dark: var(--text-secondary);
+
+        --player-glow: var(--accent-cyan);
+        --opponent-glow: var(--accent-magenta);
+        --neutral-glow: var(--accent-lavender);
+        --warning-glow: var(--accent-warning);
+      }
+      body {
+        background-color: var(--bg-void);
+        background-image:
+            /* Stars */
+            radial-gradient(1px 1px at 20% 80%, white, transparent),
+            radial-gradient(1px 1px at 75% 25%, white, transparent),
+            radial-gradient(1.5px 1.5px at 50% 50%, white, transparent),
+            radial-gradient(1px 1px at 90% 60%, white, transparent),
+            /* Hexagons */
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%2300f2ff' stroke-width='0.5'%3E%3Cpath opacity='0.05' d='M60 0L120 34.64V103.92L60 138.56L0 103.92V34.64z'/%3E%3Cpath opacity='0.08' d='M30 17.32L60 34.64V69.28L30 86.6L0 69.28V34.64z' transform='translate(50 30)'/%3E%3Cpath opacity='0.06' d='M15 8.66L30 17.32V34.64L15 43.3L0 34.64V17.32z' transform='translate(10 70)'/%3E%3C/g%3E%3C/svg%3E"),
+            /* Nebula */
+            radial-gradient(ellipse at 80% 20%, var(--bg-violet-nebula) 0%, transparent 50%),
+            radial-gradient(ellipse at 25% 75%, var(--bg-indigo) 0%, transparent 60%),
+            /* Base */
+            linear-gradient(160deg, var(--bg-start) 10%, var(--bg-end) 100%);
+
+        animation: space-drift 180s linear infinite alternate;
+        color: var(--text-light);
+        min-height: 100vh;
+        overflow: hidden;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      .glassmorphic {
+        background-color: rgba(26, 10, 42, 0.55);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        border: 1px solid rgba(156, 136, 255, 0.25);
+        box-shadow: 
+            inset 0 1px 1px rgba(240, 232, 255, 0.08),
+            0 0 50px rgba(16, 8, 40, 0.8);
+      }
+      .central-nexus {
+        padding: 1rem;
+        border-radius: 1rem;
+        border: 1px solid var(--neutral-glow);
+        animation: border-glow 3s infinite alternate ease-in-out;
+        --shadow-color: var(--neutral-glow);
+      }
+      .action-stack {
+        min-height: 180px; /* Accomodate card height + title */
+        padding: 0.5rem;
+        background: rgba(0,0,0,0.2);
+        border-radius: 0.5rem;
+        border: 1px dashed rgba(156, 136, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .action-stack-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .action-stack-item:not(:first-child) {
+        margin-top: -110px; /* Overlap cards vertically */
+      }
+      .action-stack-item .card-container {
+        transition: transform 0.2s ease-out;
+      }
+      .action-stack-item:hover .card-container {
+        transform: translateY(-10px) scale(1.05);
+        z-index: 10;
+      }
+      .action-stack-label {
+        background-color: rgba(0,0,0,0.7);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 4px;
+        z-index: 5;
+      }
+      .dialogue-bubble {
+        background: rgba(16, 8, 40, 0.7);
+        border: 1px solid var(--accent-lavender);
+        border-radius: .4em;
+        padding: 8px 12px;
+        font-style: italic;
+        color: var(--text-primary);
+        max-width: 400px;
+        text-align: center;
+      }
+      .dialogue-bubble-cursor {
+          animation: blink-caret 1s step-end infinite;
+          font-weight: bold;
+      }
+      .pile-container {
+        aspect-ratio: 3 / 2.5;
+        width: 180px;
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.2s ease-out;
+      }
+      .pile-container:hover {
+        transform: scale(1.05);
+      }
+      .pile-stack-item {
+        position: absolute;
+        inset: 0;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(156, 136, 255, 0.2);
+        background-color: var(--bg-indigo);
+        transition: all 0.3s ease-out;
+      }
+      #player-hand-grid .card-wrapper {
+        position: absolute;
+        bottom: 0;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      }
+      #player-hand-grid .card-wrapper:hover {
+        transform: translateY(-45px) scale(1.15) !important;
+        z-index: 100 !important;
+      }
+      .is-active-hand {
+          animation: hand-active-glow 3s infinite alternate ease-in-out;
+      }
+      @keyframes blink-caret {
+        from, to { color: transparent }
+        50% { color: var(--accent-cyan); }
+      }
+      @keyframes space-drift {
+        from { background-position: 0% 0%; }
+        to { background-position: 100% 100%; }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes card-place {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      @keyframes pulse-bright {
+        0%, 100% { transform: scale(1); filter: brightness(1); }
+        50% { transform: scale(1.1); filter: brightness(1.5); }
+      }
+      @keyframes thinking-pulse {
+        0%, 100% { opacity: 0.7; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+      @keyframes thinking-pulse-icon {
+        0%, 100% { filter: drop-shadow(0 0 5px var(--opponent-glow)); transform: scale(1); }
+        50% { filter: drop-shadow(0 0 15px var(--opponent-glow)); transform: scale(1.1); }
+      }
+      @keyframes score-flash {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+      }
+      @keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 0 20px 3px var(--shadow-color, var(--accent-magenta)); }
+        50% { box-shadow: 0 0 35px 8px var(--shadow-color, var(--accent-magenta)); }
+      }
+      @keyframes border-glow {
+        0%, 100% { border-color: var(--shadow-color); box-shadow: 0 0 8px -2px var(--shadow-color); }
+        50% { border-color: var(--shadow-color); box-shadow: 0 0 18px 2px var(--shadow-color); }
+      }
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-12px); }
+        100% { transform: translateY(0px); }
+      }
+      @keyframes gold-pulse {
+        0%, 100% { transform: scale(1); filter: brightness(1.2); }
+        50% { transform: scale(1.05); filter: brightness(1.8); }
+      }
+      @keyframes red-strobe {
+        0%, 100% { opacity: 1; filter: brightness(1); }
+        50% { opacity: 0.6; filter: brightness(1.5); }
+      }
+      @keyframes action-glow {
+        0%, 100% {
+          box-shadow: 0 0 8px 1px var(--player-glow), inset 0 0 4px 0px var(--player-glow);
+          border-color: var(--player-glow);
+        }
+        50% {
+          box-shadow: 0 0 16px 3px var(--player-glow), inset 0 0 7px 1px var(--player-glow);
+          border-color: var(--player-glow);
+        }
+      }
+      @keyframes hand-active-glow {
+          0%, 100% { filter: drop-shadow(0 5px 15px rgba(0, 242, 255, 0.1)); transform: translateY(0); }
+          50% { filter: drop-shadow(0 8px 25px rgba(0, 242, 255, 0.2)); transform: translateY(-5px); }
+      }
+      .animate-action-glow {
+        animation: action-glow 2s infinite ease-in-out;
+      }
+      @keyframes overcharged-badge-pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.85; }
+      }
+      .animate-gold-pulse { animation: gold-pulse 1.5s infinite ease-in-out; }
+      .animate-red-strobe { animation: red-strobe 0.5s infinite step-end; }
+      .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+      .animate-card-place { animation: card-place 0.3s ease-out forwards; }
+      .animate-score-flash { animation: score-flash 0.5s ease-in-out; }
+
+      /* Custom Scrollbar */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: var(--neutral-glow);
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: var(--accent-cyan);
+      }
+      .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: var(--neutral-glow) rgba(0,0,0,0.3);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "immer": "https://esm.sh/immer@^10.1.1",
+    "uuid": "https://esm.sh/uuid@^11.1.0",
+    "@google/genai": "https://esm.sh/@google/genai"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
